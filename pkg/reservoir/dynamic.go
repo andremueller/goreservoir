@@ -1,9 +1,9 @@
 package reservoir
 
-// Dynamic is a biased dynamic sampler.
-type Dynamic struct {
+// DynamicSampler is a biased dynamic sampler.
+type DynamicSampler struct {
 }
 
-func NewDynamic() *Dynamic {
-	return &Dynamic{}
+func NewDynamic() *DynamicSampler {
+	return &DynamicSampler{}
 }
