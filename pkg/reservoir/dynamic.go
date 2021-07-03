@@ -116,3 +116,5 @@ func dice(prob float64) bool {
 func (s *DynamicSampler) Data() []sampling.Sample {
 	return s.reservoir
 }
+
+var _ sampling.Sampler = (*DynamicSampler)(nil)
