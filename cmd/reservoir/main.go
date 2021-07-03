@@ -1,13 +1,13 @@
 package main
 
 // import  "github.com/guptarohit/asciigraph"
+// "github.com/bsipos/thist"
 import (
-	"fmt"
 	"math/rand"
 
+	"github.com/Arafatk/glot"
 	"github.com/andremueller/goreservoir/pkg/reservoir"
 	"github.com/andremueller/goreservoir/pkg/sampling"
-	"github.com/bsipos/thist"
 )
 
 func increment() chan int {
@@ -22,10 +22,10 @@ func increment() chan int {
 	return c
 }
 
-func computeAges(i int, data []sampling.Sample) []float64 {
-	ages := make([]float64, len(data))
+func computeAges(i int, data []sampling.Sample) []int {
+	ages := make([]int, len(data))
 	for j := 0; j < len(data); j++ {
-		ages[j] = float64(i - data[j].(int))
+		ages[j] = i - data[j].(int)
 	}
 	return ages
 }
@@ -38,17 +38,19 @@ func main() {
 		Capacity: 50,
 	}
 	sampler := reservoir.NewDynamic(opts)
-	h := thist.NewHist(nil, "Age", "auto", -1, true)
 	maxIter := 5000
+	plot, err := glot.NewPlot(1, false, false)
+	if err != nil {
+		panic(err)
+	}
+	allAges := make([]int, 0, 5000)
 	for i := 0; i < maxIter; i++ {
 		sampler.Add([]sampling.Sample{<-inc})
 		if i >= 1000 && len(sampler.Data()) >= opts.Capacity-10 {
 			ages := computeAges(i, sampler.Data())
-			for _, age := range ages {
-				h.Update(age)
-			}
+			allAges = append(allAges, ages...)
 		}
 	}
-	fmt.Println("Histogram:")
-	fmt.Println(h.Draw())
+	plot.AddPointGroup("ages", "histogram", allAges)
+	plot.SavePlot("histogram.png")
 }
