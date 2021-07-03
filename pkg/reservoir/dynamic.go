@@ -42,6 +42,7 @@ func NewDynamic(opts DynamicSamplerOpts) *DynamicSampler {
 		opts:      opts,
 		reservoir: make([]sampling.Sample, 0, opts.Capacity),
 		pMin:      math.Min(1.0, float64(opts.Capacity)/float64(n)),
+		pIn:       1.0,
 		qq:        1.0 / float64(opts.Capacity),
 	}
 }
