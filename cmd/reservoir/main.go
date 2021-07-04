@@ -69,22 +69,21 @@ func main() {
 	inc := increment()
 	opts := reservoir.DynamicSamplerOpts{
 		Lambda:   1.0 / 200.0,
-		Capacity: 50,
+		Capacity: 100,
 	}
 	sampler := sampling.NewChainSampler()
 	sampler.AddLayer(reservoir.NewDynamic(opts))
 	sampler.AddLayer(reservoir.NewDynamic(opts))
 	maxIter := 20000
-	allAges := make([]int, 2000)
+	allAges1 := make([]int, 2000)
+	allAges2 := make([]int, 2000)
 	for i := 0; i < maxIter; i++ {
 		sampler.Add([]sampling.Sample{<-inc})
-		if i >= 1000 && len(sampler.Data()) >= opts.Capacity-10 {
-			ages := computeAges(i, sampler.Data())
-			for _, a := range ages {
-				if a >= 0 && a < len(allAges) {
-					allAges[a]++
-				}
-			}
+		if i >= 1000 && len(sampler.Layer(0).Data()) >= opts.Capacity-10 {
+			updateAges(allAges1, computeAges(i, sampler.Layer(0).Data()))
+		}
+		if i >= 1000 && len(sampler.Layer(1).Data()) >= opts.Capacity-10 {
+			updateAges(allAges2, computeAges(i, sampler.Layer(1).Data()))
 		}
 	}
 
@@ -93,9 +92,14 @@ func main() {
 		panic(err)
 	}
 	defer plot.Close()
-	points := [][]float64{indexArrayFloat64(len(allAges)), scale(allAges)}
-	err = plot.AddPointGroup("ages", "lines", points)
-	if err != nil {
-		panic(err)
+	plot.AddPointGroup("ages_1", "lines", [][]float64{indexArrayFloat64(len(allAges1)), scale(allAges1)})
+	plot.AddPointGroup("ages_2", "lines", [][]float64{indexArrayFloat64(len(allAges2)), scale(allAges2)})
+}
+
+func updateAges(summary []int, ages []int) {
+	for _, a := range ages {
+		if a >= 0 && a < len(summary) {
+			summary[a]++
+		}
 	}
 }
