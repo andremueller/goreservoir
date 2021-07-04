@@ -13,33 +13,9 @@ import (
 	"github.com/andremueller/goreservoir/pkg/sampling"
 )
 
-func indexArray(n int) []int {
-	result := make([]int, n)
-	for i := range result {
-		result[i] = i
-	}
-	return result
-}
-
-func indexArrayFloat64(n int) []float64 {
-	result := make([]float64, n)
-	for i := range result {
-		result[i] = float64(i)
-	}
-	return result
-}
-
-func computeAges(i int, data []sampling.Sample) []int {
-	ages := make([]int, len(data))
-	for j := 0; j < len(data); j++ {
-		ages[j] = i - data[j].(int)
-	}
-	return ages
-}
-
 func main() {
 	rand.Seed(173)
-	nlayer := 3
+	nlayer := 5
 	opts := reservoir.DynamicSamplerOpts{
 		Lambda:   1.0 / 200.0,
 		Capacity: 100,
@@ -50,9 +26,9 @@ func main() {
 	}
 	hists := make([]*analysis.HistogramInt, nlayer)
 	for i := range hists {
-		hists[i] = analysis.NewHistogramInt(0, 5000, 1000)
+		hists[i] = analysis.NewHistogramInt(0, 8000, 1000)
 	}
-	maxIter := 20000
+	maxIter := 50000
 	for t := 0; t < maxIter; t++ {
 		sampler.Add([]sampling.Sample{t})
 		for j := 0; j < sampler.Count(); j++ {
@@ -76,4 +52,14 @@ func main() {
 	for i, h := range hists {
 		plot.AddPointGroup(fmt.Sprintf("ages_%d", i), "lines", [][]float64{h.Bins(), h.Percentage()})
 	}
+}
+
+// computeAges returns a list of ages (in number of iterations) of the points in the reservoir.
+// iter is the current iteration 0, 1, ...
+func computeAges(iter int, data []sampling.Sample) []int {
+	ages := make([]int, len(data))
+	for j := 0; j < len(data); j++ {
+		ages[j] = iter - data[j].(int)
+	}
+	return ages
 }
