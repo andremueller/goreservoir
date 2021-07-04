@@ -4,24 +4,14 @@ package main
 // "github.com/bsipos/thist"
 // https://stackoverflow.com/questions/2471884/histogram-using-gnuplot
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/Arafatk/glot"
+	"github.com/andremueller/goreservoir/pkg/analysis"
 	"github.com/andremueller/goreservoir/pkg/reservoir"
 	"github.com/andremueller/goreservoir/pkg/sampling"
 )
-
-func increment() chan int {
-	c := make(chan int)
-	go func() {
-		i := 0
-		for {
-			c <- i
-			i++
-		}
-	}()
-	return c
-}
 
 func indexArray(n int) []int {
 	result := make([]int, n)
@@ -47,43 +37,30 @@ func computeAges(i int, data []sampling.Sample) []int {
 	return ages
 }
 
-func sum(data []int) int {
-	s := 0
-	for _, d := range data {
-		s += d
-	}
-	return s
-}
-
-func scale(data []int) []float64 {
-	scaled := make([]float64, len(data))
-	max := sum(data)
-	for i := range data {
-		scaled[i] = float64(data[i]) / float64(max)
-	}
-	return scaled
-}
-
 func main() {
 	rand.Seed(173)
-	inc := increment()
+	nlayer := 3
 	opts := reservoir.DynamicSamplerOpts{
 		Lambda:   1.0 / 200.0,
 		Capacity: 100,
 	}
 	sampler := sampling.NewChainSampler()
-	sampler.AddLayer(reservoir.NewDynamic(opts))
-	sampler.AddLayer(reservoir.NewDynamic(opts))
+	for i := 0; i < nlayer; i++ {
+		sampler.AddLayer(reservoir.NewDynamic(opts))
+	}
+	hists := make([]*analysis.HistogramInt, nlayer)
+	for i := range hists {
+		hists[i] = analysis.NewHistogramInt(0, 2000, 1000)
+	}
 	maxIter := 20000
-	allAges1 := make([]int, 2000)
-	allAges2 := make([]int, 2000)
-	for i := 0; i < maxIter; i++ {
-		sampler.Add([]sampling.Sample{<-inc})
-		if i >= 1000 && len(sampler.Layer(0).Data()) >= opts.Capacity-10 {
-			updateAges(allAges1, computeAges(i, sampler.Layer(0).Data()))
-		}
-		if i >= 1000 && len(sampler.Layer(1).Data()) >= opts.Capacity-10 {
-			updateAges(allAges2, computeAges(i, sampler.Layer(1).Data()))
+	for t := 0; t < maxIter; t++ {
+		sampler.Add([]sampling.Sample{t})
+		for j := 0; j < sampler.Count(); j++ {
+			data := sampler.Layer(j).Data()
+			if len(data) > opts.Capacity-10 {
+				ages := computeAges(t, data)
+				hists[j].AddAll(ages)
+			}
 		}
 	}
 
@@ -92,14 +69,7 @@ func main() {
 		panic(err)
 	}
 	defer plot.Close()
-	plot.AddPointGroup("ages_1", "lines", [][]float64{indexArrayFloat64(len(allAges1)), scale(allAges1)})
-	plot.AddPointGroup("ages_2", "lines", [][]float64{indexArrayFloat64(len(allAges2)), scale(allAges2)})
-}
-
-func updateAges(summary []int, ages []int) {
-	for _, a := range ages {
-		if a >= 0 && a < len(summary) {
-			summary[a]++
-		}
+	for i, h := range hists {
+		plot.AddPointGroup(fmt.Sprintf("ages_%d", i), "lines", [][]float64{h.Bins(), h.Percentage()})
 	}
 }
