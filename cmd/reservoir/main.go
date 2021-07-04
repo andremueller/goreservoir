@@ -71,7 +71,9 @@ func main() {
 		Lambda:   1.0 / 200.0,
 		Capacity: 50,
 	}
-	sampler := reservoir.NewDynamic(opts)
+	sampler := sampling.NewChainSampler()
+	sampler.AddLayer(reservoir.NewDynamic(opts))
+	sampler.AddLayer(reservoir.NewDynamic(opts))
 	maxIter := 20000
 	allAges := make([]int, 2000)
 	for i := 0; i < maxIter; i++ {

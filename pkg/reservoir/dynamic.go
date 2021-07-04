@@ -52,10 +52,14 @@ func (s *DynamicSampler) Add(samples []sampling.Sample) []sampling.Sample {
 	for _, sample := range samples {
 		d := s.addSingle(sample)
 		if d != nil {
-			dropped = append(dropped, d)
+			dropped = append(dropped, d...)
 		}
 	}
 	return dropped
+}
+
+func (s *DynamicSampler) Data() []sampling.Sample {
+	return s.reservoir
 }
 
 func (s *DynamicSampler) addSingle(sample sampling.Sample) []sampling.Sample {
@@ -103,6 +107,7 @@ func maxInt(x, y int) int {
 }
 
 func remove(slice []sampling.Sample, i int) []sampling.Sample {
+	// replace the element to be removed with the last element and shrink the slice by 1
 	slice[i] = slice[len(slice)-1]
 	return slice[:len(slice)-1]
 }
@@ -110,11 +115,6 @@ func remove(slice []sampling.Sample, i int) []sampling.Sample {
 // dice returns true with probability `prob`.
 func dice(prob float64) bool {
 	return rand.Float64() <= prob
-}
-
-// Data returns a slice of the current samples within the Sampler.
-func (s *DynamicSampler) Data() []sampling.Sample {
-	return s.reservoir
 }
 
 var _ sampling.Sampler = (*DynamicSampler)(nil)
