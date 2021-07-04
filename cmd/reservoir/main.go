@@ -50,7 +50,7 @@ func main() {
 	}
 	hists := make([]*analysis.HistogramInt, nlayer)
 	for i := range hists {
-		hists[i] = analysis.NewHistogramInt(0, 2000, 1000)
+		hists[i] = analysis.NewHistogramInt(0, 5000, 1000)
 	}
 	maxIter := 20000
 	for t := 0; t < maxIter; t++ {
@@ -68,6 +68,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	plot.SetTitle(fmt.Sprintf("Reservoir Sampling Chain \\lambda=%.3e, \\s=%d n=%d",
+		opts.Lambda, opts.Capacity, maxIter))
+	plot.SetYLabel("relative frequency")
+	plot.SetXLabel("age [iterations]")
 	defer plot.Close()
 	for i, h := range hists {
 		plot.AddPointGroup(fmt.Sprintf("ages_%d", i), "lines", [][]float64{h.Bins(), h.Percentage()})
