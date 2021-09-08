@@ -1,2 +1,7 @@
-
-
+*.exe
+*.csv
+.Rproj.user
+*.jpeg
+*.png
+.RData
+.Rhistory

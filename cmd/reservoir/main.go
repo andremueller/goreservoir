@@ -52,6 +52,10 @@ func main() {
 	for i, h := range hists {
 		plot.AddPointGroup(fmt.Sprintf("ages_%d", i), "lines", [][]float64{h.Bins(), h.Percentage()})
 	}
+	err = plot.SavePlot("out.jpeg")
+	if err != nil {
+		panic(err)
+	}
 }
 
 // computeAges returns a list of ages (in number of iterations) of the points in the reservoir.
