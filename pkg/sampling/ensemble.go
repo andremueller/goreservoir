@@ -1,6 +1,6 @@
 package sampling
 
-// EnsembleSampler feeds a sample into multiple samplers
+// EnsembleSampler feeds a sample into multiple samplers in parallel.
 type EnsembleSampler struct {
 	samplers []Sampler
 }
@@ -24,10 +24,12 @@ func (s *EnsembleSampler) Count() int {
 	return len(s.samplers)
 }
 
+// Add adds one ore more samples to the EnsembleSampler. In this case the dropped
+// samples are grouped by sampler.
 func (s *EnsembleSampler) Add(samples []Sample) []Sample {
-	dropped := make([]Sample, 0)
-	for _, sampler := range s.samplers {
-		dropped = append(dropped, sampler.Add(samples)...)
+	dropped := make([]Sample, s.Count())
+	for i, sampler := range s.samplers {
+		dropped[i] = sampler.Add(samples)
 	}
 	return dropped
 }
@@ -43,6 +45,12 @@ func (s *EnsembleSampler) Data() []Sample {
 		result = append(result, sampler.Data())
 	}
 	return result
+}
+
+func (s *EnsembleSampler) Reset() {
+	for _, sampler := range s.samplers {
+		sampler.Reset()
+	}
 }
 
 var _ Sampler = (*EnsembleSampler)(nil)

@@ -31,6 +31,10 @@ func (s *Sliding) Add(samples []sampling.Sample) []sampling.Sample {
 	return dropped
 }
 
+func (s *Sliding) Reset() {
+	s.buffer = s.buffer[:0]
+}
+
 func (s *Sliding) addSingle(sample sampling.Sample) sampling.Sample {
 	if len(s.buffer) < s.n {
 		s.buffer = append(s.buffer, sample)

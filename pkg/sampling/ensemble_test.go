@@ -25,6 +25,10 @@ func (s *recordingSampler) Data() []Sample {
 	return s.data
 }
 
+func (s *recordingSampler) Reset() {
+	s.data = s.data[:0]
+}
+
 func sampleToInt(value []Sample) []int {
 	result := make([]int, len(value))
 	for i, sample := range value {

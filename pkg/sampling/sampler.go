@@ -12,4 +12,7 @@ type Sampler interface {
 
 	// Data returns a slice of the current samples within the Sampler.
 	Data() []Sample
+
+	// Reset resets the state of the sampler
+	Reset()
 }

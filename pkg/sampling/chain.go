@@ -45,4 +45,10 @@ func (s *ChainSampler) Data() []Sample {
 	return s.layers[len(s.layers)-1].Data()
 }
 
+func (s *ChainSampler) Reset() {
+	for _, sampler := range s.layers {
+		sampler.Reset()
+	}
+}
+
 var _ Sampler = (*ChainSampler)(nil)

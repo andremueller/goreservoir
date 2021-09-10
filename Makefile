@@ -1,7 +1,11 @@
-
 .PHONY: all
 all:
-	go build ./...
+	cd cmd/health && go build
+	cd cmd/reservoir && go build
+
+.PHONY: update
+update:
+	go get -u ./...
 
 .PHONY: tidy
 tidy:

@@ -62,6 +62,10 @@ func (s *DynamicSampler) Data() []sampling.Sample {
 	return s.reservoir
 }
 
+func (s *DynamicSampler) Reset() {
+	s.reservoir = s.reservoir[:0]
+}
+
 func (s *DynamicSampler) addSingle(sample sampling.Sample) []sampling.Sample {
 	dropped := make([]sampling.Sample, 0)
 	nCur := len(s.reservoir)
