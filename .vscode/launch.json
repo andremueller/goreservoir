@@ -5,6 +5,25 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run example",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "args": [
+                "--input",
+                "C:\\Data\\Blum\\lmg-gear-data-1\\Summary_000406.csv",
+                "--skip",
+                "[Messdaten]",
+                "--field",
+                "Health Indicator Unfiltered",
+                "--output",
+                "C:\\Data\\Blum\\lmg-gear-data-1\\Summary_000406_result.csv",
+                "--ensemble",
+                "10",
+            ],
+            "program": "${workspaceFolder}/cmd/health/main.go"
+        },
+        {
             "name": "Launch file",
             "type": "go",
             "request": "launch",

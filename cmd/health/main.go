@@ -7,8 +7,10 @@ import (
 	"math/rand"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/andremueller/goreservoir/pkg/io"
+	"github.com/andremueller/goreservoir/pkg/stats"
 	"go.uber.org/zap"
 	"gonum.org/v1/gonum/stat"
 
@@ -41,7 +43,8 @@ func loadData(fileName string, findHeader string) (dataframe.DataFrame, error) {
 	return data, nil
 }
 
-func unstripFloat(data []sampling.Sample) []float64 {
+func unstripFloat(dat sampling.Sample) []float64 {
+	data := dat.([]sampling.Sample)
 	result := make([]float64, len(data))
 	for i := 0; i < len(data); i++ {
 		result[i] = data[i].(float64)
@@ -57,7 +60,7 @@ func computeStat(old, new []float64) float64 {
 
 type config struct {
 	inputFile  string
-	skipHeader string
+	header     string
 	outputFile string
 	field      string
 	lambda1    float64
@@ -65,11 +68,14 @@ type config struct {
 	lambda2    float64
 	capacity2  int
 	minLen     int
+	ensemble   int
+	seed       int64
+	skip       int
 }
 
 func (c *config) parse() {
 	flag.StringVar(&c.inputFile, "input", "", "input csv file")
-	flag.StringVar(&c.skipHeader, "skip", "", "header to find (default: none)")
+	flag.StringVar(&c.header, "header", "", "header to find (default: none)")
 	flag.StringVar(&c.outputFile, "output", "result.csv", "output csv file")
 	flag.StringVar(&c.field, "field", "", "input field to be used")
 	flag.Float64Var(&c.lambda1, "lambda1", 1.0/1000.0, "Lambda of the first reservoir")
@@ -77,7 +83,48 @@ func (c *config) parse() {
 	flag.Float64Var(&c.lambda2, "lambda2", 1.0/10000.0, "Lambda of the second reservoir")
 	flag.IntVar(&c.capacity2, "capacity2", 1000, "Capacity of the second reservoir")
 	flag.IntVar(&c.minLen, "min", 50, "minimum capacity before running the metric")
+	flag.IntVar(&c.ensemble, "ensemble", 1, "number of ensembles")
+	flag.Int64Var(&c.seed, "seed", 0, "random seed value (0 = current time)")
+	flag.IntVar(&c.skip, "skip", 1000, "Number of samples to wait before computing statistics")
 	flag.Parse()
+}
+
+func createSampler(cfg *config) *sampling.EnsembleSampler {
+	opts1 := reservoir.DynamicSamplerOpts{
+		Lambda:   cfg.lambda1,
+		Capacity: cfg.capacity1,
+	}
+	opts2 := reservoir.DynamicSamplerOpts{
+		Lambda:   cfg.lambda2,
+		Capacity: cfg.capacity2,
+	}
+	sampler := sampling.NewEnsembleSampler()
+
+	for i := 0; i < cfg.ensemble; i++ {
+		s := sampling.NewChainSampler()
+		s.AddLayer(reservoir.NewDynamic(opts1))
+		s.AddLayer(reservoir.NewDynamic(opts2))
+		sampler.AddSampler(s)
+	}
+
+	return sampler
+}
+
+func computeAllStats(data []sampling.Sample, minLen int) []float64 {
+	result := make([]float64, 0, len(data))
+	for _, s := range data {
+		samp := s.([]sampling.Sample)
+		if len(samp) != 2 {
+			panic("Wrong dimensionality")
+		}
+		v0 := unstripFloat(samp[0])
+		v1 := unstripFloat(samp[1])
+
+		if len(v0) >= minLen && len(v1) >= minLen {
+			result = append(result, computeStat(v0, v1))
+		}
+	}
+	return result
 }
 
 func main() {
@@ -87,49 +134,47 @@ func main() {
 	var cfg config
 	cfg.parse()
 
-	data, err := loadData(cfg.inputFile, cfg.skipHeader)
+	zap.S().Infof("Config: %+v", cfg)
+
+	data, err := loadData(cfg.inputFile, cfg.header)
 	if err != nil {
 		panic(err)
 	}
 	zap.S().Infof("Loaded %d records (%d columns) from %s", data.Nrow(), data.Ncol(), cfg.inputFile)
 
-	rand.Seed(173)
-	opts1 := reservoir.DynamicSamplerOpts{
-		Lambda:   cfg.lambda1,
-		Capacity: cfg.capacity1,
+	t := time.Now().Unix()
+	if cfg.seed != 0 {
+		t = cfg.seed
 	}
-	opts2 := reservoir.DynamicSamplerOpts{
-		Lambda:   cfg.lambda2,
-		Capacity: cfg.capacity2,
-	}
-	sampler := sampling.NewChainSampler()
-	sampler.AddLayer(reservoir.NewDynamic(opts1))
-	sampler.AddLayer(reservoir.NewDynamic(opts2))
+	zap.S().Infof("Using random seed %d", t)
+	rand.Seed(t)
+
+	sampler := createSampler(&cfg)
 
 	sel := data.Select([]string{cfg.field})
 
-	stat := make([]float64, 0)
-	index := make([]int, 0)
-	started := false
+	indexValues := series.New(nil, series.Int, "index")
+	statMean := series.New(nil, series.Float, "ks.stat")
+	statMin := series.New(nil, series.Float, "ks.stat.min")
+	statMax := series.New(nil, series.Float, "ks.stat.max")
+	statStdDev := series.New(nil, series.Float, "ks.stat.sd")
+
 	bar := progressbar.New(sel.Nrow())
 	for i := 0; i < sel.Nrow(); i++ {
 		bar.Add(1)
 		sampler.Add([]sampling.Sample{sel.Elem(i, 0).Float()})
-		v0 := unstripFloat(sampler.Layer(0).Data())
-		v1 := unstripFloat(sampler.Layer(1).Data())
-		if len(v0) >= cfg.minLen && len(v1) >= cfg.minLen {
-			if !started {
-				zap.S().Infof("Started metric at row %d", i)
-				started = true
-			}
-			stat = append(stat, computeStat(v1, v0))
-			index = append(index, i)
+		if i >= cfg.skip {
+			value := computeAllStats(sampler.Data(), cfg.minLen)
+			fivenum := stats.ComputeFiveNum(value)
+			indexValues.Append(i)
+			statMean.Append(fivenum.Mean)
+			statMin.Append(fivenum.Min)
+			statMax.Append(fivenum.Max)
+			statStdDev.Append(fivenum.StdDev)
 		}
 	}
-	indexValues := series.New(index, series.Int, "index")
-	statValues := series.New(stat, series.Float, "ks.stat")
 
-	result := dataframe.New(indexValues, statValues)
+	result := dataframe.New(indexValues, statMean, statMin, statMax, statStdDev)
 
 	zap.S().Infof("Writing %d rows to output file %s", result.Nrow(), cfg.outputFile)
 	writer, err := os.OpenFile(cfg.outputFile, os.O_CREATE|os.O_TRUNC, os.ModePerm)

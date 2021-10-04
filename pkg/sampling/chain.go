@@ -37,12 +37,13 @@ func (s *ChainSampler) Add(samples []Sample) []Sample {
 }
 
 // Data returns a slice of the current samples within the Sampler. For a chain sampler
-// this will be just the last layer.
+// this will be a list of all layers
 func (s *ChainSampler) Data() []Sample {
-	if len(s.layers) == 0 {
-		panic("empty layers")
+	result := make([]Sample, len(s.layers))
+	for i, layer := range s.layers {
+		result[i] = layer.Data()
 	}
-	return s.layers[len(s.layers)-1].Data()
+	return result
 }
 
 func (s *ChainSampler) Reset() {
