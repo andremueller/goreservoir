@@ -7,7 +7,7 @@ type Sample interface{}
 // Sampler is an interface for sampling data from a stream.
 type Sampler interface {
 	// Add adds one or multiple samples to the Sampler.
-	// Returns a set of dropped samples in this step
+	// Returns a set of dropped samples in this step.
 	Add(samples []Sample) []Sample
 
 	// Data returns a slice of the current samples within the Sampler.

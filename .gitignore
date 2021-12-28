@@ -5,3 +5,5 @@
 *.png
 .RData
 .Rhistory
+cmd/health/health
+cmd/reservoir/reservoir

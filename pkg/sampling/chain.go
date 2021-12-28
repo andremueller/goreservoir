@@ -52,4 +52,6 @@ func (s *ChainSampler) Reset() {
 	}
 }
 
+// compile time check for checking if ChainSampler implements sampling.Sampler
+// see https://go.dev/doc/faq#implements_interface
 var _ Sampler = (*ChainSampler)(nil)

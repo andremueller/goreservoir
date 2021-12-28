@@ -53,4 +53,6 @@ func (s *EnsembleSampler) Reset() {
 	}
 }
 
+// compile time check for checking if EnsembleSampler implements sampling.Sampler
+// see https://go.dev/doc/faq#implements_interface
 var _ Sampler = (*EnsembleSampler)(nil)
