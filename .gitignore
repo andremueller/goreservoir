@@ -1,9 +1,6 @@
 *.exe
 *.csv
 .Rproj.user
-*.jpeg
-*.png
 .RData
 .Rhistory
-cmd/health/health
 cmd/reservoir/reservoir

@@ -1,8 +1,6 @@
+// Computes the age of some stacked reservoir samplers.
 package main
 
-// import  "github.com/guptarohit/asciigraph"
-// "github.com/bsipos/thist"
-// https://stackoverflow.com/questions/2471884/histogram-using-gnuplot
 import (
 	"fmt"
 	"math/rand"

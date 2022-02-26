@@ -1,6 +1,5 @@
 .PHONY: all
 all:
-	cd cmd/health && go build
 	cd cmd/reservoir && go build
 
 .PHONY: update
