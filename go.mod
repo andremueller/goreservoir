@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/Arafatk/glot v0.0.0-20180312013246-79d5219000f0
-	github.com/stretchr/testify v1.7.5
+	github.com/stretchr/testify v1.8.0
 )
 
 require (
