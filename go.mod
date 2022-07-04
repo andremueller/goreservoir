@@ -16,7 +16,7 @@ require (
 
 require (
 	golang.org/x/text v0.3.7
-	gonum.org/v1/gonum v0.9.3
+	gonum.org/v1/gonum v0.11.0
 )
 
 require (
