@@ -1,3 +1,5 @@
+[![Go](https://github.com/andremueller/goreservoir/actions/workflows/go.yml/badge.svg)](https://github.com/andremueller/goreservoir/actions/workflows/go.yml)
+
 # Reservoir Sampling in Go
 
 Implemented the **Biased Reservoir Sampling** approach [1] as a package in Go. A common interface may simplify to integrate further sampling techniques.
